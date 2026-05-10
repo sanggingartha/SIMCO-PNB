@@ -1,0 +1,5 @@
+1. Navbar mobile + desktop [x]
+2. hero section [x]
+3. logo, favicon, name web [x]
+4. footer [x]
+5. API Integrate = [Open Weather API (weather => temp, humidity)] [x]
