@@ -1,35 +1,119 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./card";
-import { CloudRain, Droplets, Wind } from "lucide-react";
+import { Cloud, CloudRain, Droplets, Sun, Wind } from "lucide-react";
 import { WeatherData } from "@/types/weather";
-import { getWeatherData } from "@/app/actions";
-import { getHumidityMessage, getWeatherMessage } from "@/lib/weather-message";
+import { getDailySummary, getWeatherData } from "@/app/actions";
+import { getWeatherMessage } from "@/lib/weather";
 import { motion } from "framer-motion";
+import {
+  getHumidityMessage,
+  getHumidityStatus,
+  getHumidityStyle,
+} from "@/lib/humidity";
+import { getCO2Message, getCO2Status, getCO2Style } from "@/lib/co2";
+
+function getWeatherIcon(weather: string) {
+  if (weather === "Cerah") {
+    return <Sun className="h-3.5 w-3.5 text-yellow-500" />;
+  }
+
+  if (weather === "Hujan") {
+    return <CloudRain className="h-3.5 w-3.5 text-blue-500" />;
+  }
+
+  if (weather === "Berawan") {
+    return <Cloud className="h-3.5 w-3.5 text-gray-500" />;
+  }
+
+  return <Cloud className="h-3.5 w-3.5 text-gray-400" />;
+}
 
 export default function JustCards() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [error, setError] = useState<string>("");
+  const [co2, setCo2] = useState<number>(400);
+  const [dailyReports, setDailyReports] = useState<any[]>([]);
 
+  // Fetch weather
   useEffect(() => {
-    getWeather();
+    const fetchWeather = async () => {
+      setError("");
+
+      const { data, error: weatherError } = await getWeatherData();
+
+      if (weatherError) {
+        setError(weatherError);
+        setWeather(null);
+        return;
+      }
+      if (data) {
+        setWeather(data);
+      }
+    };
+    fetchWeather();
   }, []);
 
-  const getWeather = async () => {
-    setError("");
+  // Fetch DB
+  useEffect(() => {
+    const fetchWeather = async () => {
+      setError("");
 
-    const { data, error: weatherError } = await getWeatherData();
+      const { data, error: weatherError } = await getWeatherData();
 
-    if (weatherError) {
-      setError(weatherError);
-      setWeather(null);
-    }
+      if (weatherError) {
+        setError(weatherError);
+        setWeather(null);
+        return;
+      }
 
-    if (data) {
-      setWeather(data);
-    }
-  };
+      if (data) {
+        setWeather(data);
+      }
+    };
+
+    const fetchDailyReports = async () => {
+      const res = await getDailySummary();
+
+      if (res?.data) {
+        setDailyReports(res.data);
+      }
+    };
+
+    fetchWeather();
+    fetchDailyReports();
+  }, []);
+
+  // Dummy CO2 data
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCo2((prev) => {
+        const change = Math.floor(Math.random() * 21) - 10;
+        return Math.max(300, prev + change);
+      });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const humidity = weather?.main.humidity ?? 0;
+  const weatherMain = weather?.weather[0].main ?? "";
+
+  const humidityMessage = weather
+    ? getHumidityMessage(weather.main.humidity)
+    : "";
+
+  const weatherMessage = weather
+    ? getWeatherMessage(weather.weather[0].main)
+    : "";
+
+  const status = getHumidityStatus(humidity);
+  const style = getHumidityStyle(humidity);
+
+  const co2Status = getCO2Status(co2);
+  const co2Style = getCO2Style(co2);
+  const co2Message = getCO2Message(co2);
 
   return (
     <section className="relative z-20 md:-mt-24 px-2 pb-10">
@@ -45,7 +129,7 @@ export default function JustCards() {
             </CardHeader>
 
             <CardContent className="flex flex-col items-center text-center">
-              <h1 className="flex text-4xl font-bold text-[#1E1E1E] items-center justify-center">
+              <h1 className="flex text-4xl font-bold  text-gray-600 items-center justify-center">
                 <motion.img
                   src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`}
                   alt={weather.weather[0].description}
@@ -72,7 +156,7 @@ export default function JustCards() {
               </p>
 
               <p className="text-xs text-gray-600 mt-4 leading-relaxed">
-                {getWeatherMessage(weather.weather[0].main)}
+                {weatherMessage}
               </p>
             </CardContent>
           </Card>
@@ -85,7 +169,7 @@ export default function JustCards() {
             </CardHeader>
 
             <CardContent className="flex flex-col items-center text-center mt-5">
-              <h1 className="text-4xl font-bold text-[#1E1E1E] flex items-center justify-center gap-3">
+              <h1 className="text-4xl font-bold text-gray-600 flex items-center justify-center gap-3">
                 <motion.div
                   animate={{
                     x: [0, 4, -4, 0],
@@ -98,12 +182,19 @@ export default function JustCards() {
                 >
                   <Wind className="w-8 h-8" />
                 </motion.div>
-                <p className="">440 ppm</p>
+                <p className="">{co2} ppm</p>
               </h1>
 
-              <p className="text-xs text-gray-600 mt-8 leading-relaxed">
-                Udara yang ideal untuk aktivitas kognitif berat di area
-                Politeknik Negeri Bali
+              <p className="mt-8">
+                <span
+                  className={`mt-6 rounded-full px-5 py-1 text-sm font-semibold ring-1 ${co2Style}`}
+                >
+                  {co2Status}
+                </span>
+              </p>
+
+              <p className="text-xs text-gray-600 mt-4 leading-relaxed">
+                {co2Message}
               </p>
             </CardContent>
           </Card>
@@ -116,7 +207,7 @@ export default function JustCards() {
             </CardHeader>
 
             <CardContent className="flex flex-col items-center text-center mt-5">
-              <h1 className="text-4xl font-bold text-[#1E1E1E] flex items-center justify-center gap-3">
+              <h1 className="text-4xl font-bold text-gray-600 flex items-center justify-center gap-3">
                 <motion.div
                   animate={{
                     y: [0, 6, 0],
@@ -132,8 +223,16 @@ export default function JustCards() {
                 {weather.main.humidity} %
               </h1>
 
-              <p className="text-xs text-gray-600 mt-8 leading-relaxed">
-                {getHumidityMessage(weather.main.humidity)}
+              <p className="mt-6 text-lg font-semibold">
+                <span
+                  className={`mt-6 rounded-full px-5 py-1 text-sm font-semibold ring-1 ${style}`}
+                >
+                  {status}
+                </span>
+              </p>
+
+              <p className="text-xs text-gray-600 mt-4 leading-relaxed">
+                {humidityMessage}
               </p>
             </CardContent>
           </Card>
@@ -152,7 +251,7 @@ export default function JustCards() {
             </CardHeader>
 
             <CardContent className="flex flex-col items-center text-center">
-              <h1 className="flex text-4xl font-bold text-[#1E1E1E] items-center justify-center">
+              <h1 className="flex text-4xl font-bold text-gray-600 items-center justify-center">
                 <motion.img
                   src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`}
                   alt={weather.weather[0].description}
@@ -179,7 +278,7 @@ export default function JustCards() {
               </p>
 
               <p className="text-xs text-gray-600 mt-4 leading-relaxed">
-                {getWeatherMessage(weather.weather[0].main)}
+                {weatherMessage}
               </p>
             </CardContent>
           </Card>
@@ -192,14 +291,33 @@ export default function JustCards() {
             </CardHeader>
 
             <CardContent className="flex flex-col items-center text-center mt-5">
-              <h1 className="text-4xl font-bold text-[#1E1E1E] flex items-center justify-center gap-3">
-                <Wind className="w-8 h-8" />
-                <p className="">440 ppm</p>
+              <h1 className="text-4xl font-bold text-gray-600 flex items-center justify-center gap-3">
+                <motion.div
+                  animate={{
+                    x: [-6, 6, -6],
+                  }}
+                  transition={{
+                    duration: 5.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <Wind className="w-8 h-8" />
+                </motion.div>
+
+                <p>{co2} ppm</p>
               </h1>
 
+              <p className="mt-8">
+                <span
+                  className={`mt-6 rounded-full px-5 py-1 text-sm font-semibold ring-1 ${co2Style}`}
+                >
+                  {co2Status}
+                </span>
+              </p>
+
               <p className="text-xs text-gray-600 mt-8 leading-relaxed">
-                Udara yang ideal untuk aktivitas kognitif berat di area
-                Politeknik Negeri Bali
+                {co2Message}
               </p>
             </CardContent>
           </Card>
@@ -212,50 +330,88 @@ export default function JustCards() {
             </CardHeader>
 
             <CardContent className="flex flex-col items-center text-center mt-5">
-              <h1 className="text-4xl font-bold text-[#1E1E1E] flex items-center justify-center gap-3">
-                <Droplets className="w-8 h-8" />
+              <h1 className="text-4xl font-bold text-gray-600 flex items-center justify-center gap-3">
+                <motion.div
+                  animate={{
+                    y: [0, 6, 0],
+                  }}
+                  transition={{
+                    duration: 3.0,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <Droplets className="w-8 h-8" />
+                </motion.div>
                 {weather.main.humidity} %
               </h1>
 
+              <p className="mt-6 text-lg font-semibold">
+                <span
+                  className={`mt-6 rounded-full px-5 py-1 text-sm font-semibold ring-1 ${style}`}
+                >
+                  {status}
+                </span>
+              </p>
+
               <p className="text-xs text-gray-600 mt-8 leading-relaxed">
-                {getHumidityMessage(weather.main.humidity)}
+                {humidityMessage}
               </p>
             </CardContent>
           </Card>
 
           <Card className="rounded-[30px] bg-[#F2EEE5] border-none shadow-[0_10px_30px_rgba(0,0,0,0.15)]">
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-1">
               <CardTitle className="text-center text-sm font-medium tracking-wide underline underline-offset-4 decoration-[#5E5EFF]">
-                DAILY REPORT
+                LAPORAN HARIAN
               </CardTitle>
             </CardHeader>
 
             <CardContent>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between font-semibold">
-                  <span>Hari</span>
-                  <span>Kadar CO2</span>
-                  <span>Cuaca</span>
-                </div>
+              <div className="overflow-hidden rounded-2xl">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-[#D8D2C5]">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                        Hari
+                      </th>
 
-                {[
-                  ["Minggu", "560ppm", "Hujan"],
-                  ["Senin", "600ppm", "Berawan"],
-                  ["Selasa", "440ppm", "Cerah"],
-                  ["Rabu", "700ppm", "Gerimis"],
-                  ["Kamis", "600ppm", "Badai"],
-                  ["Jumat", "900ppm", "Hujan"],
-                  ["Sabtu", "330ppm", "Cerah"],
-                ].map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex justify-between text-gray-700"
-                  >
-                    <span>{item[0]}</span>
-                    <span>{item[1]}</span>
-                    <span>{item[2]}</span>
-                  </div>
-                ))}
+                      <th className="px-4 py-3 text-center font-semibold text-gray-700">
+                        CO₂
+                      </th>
+
+                      <th className="px-4 py-3 text-right font-semibold text-gray-700">
+                        Cuaca
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {dailyReports.map((item, index) => (
+                      <tr
+                        key={index}
+                        className="border-b border-[#DDD7CB] last:border-none hover:bg-white/40 transition-colors"
+                      >
+                        <td className="px-4 py-3 text-gray-700 font-medium">
+                          {new Date(item.date).toLocaleDateString("id-ID", {
+                            weekday: "long",
+                          })}
+                        </td>
+
+                        <td className="px-4 py-3 text-center font-semibold text-emerald-700">
+                          {item.avg_co2} ppm
+                        </td>
+
+                        <td className="px-4 py-3 text-right text-gray-600">
+                          <div className="flex items-center justify-end gap-2">
+                            {getWeatherIcon(item.weather)}
+                            <span>{item.weather}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>

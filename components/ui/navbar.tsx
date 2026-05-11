@@ -5,24 +5,28 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Button } from "./button";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePathname } from "next/navigation";
+import { Sparkles } from "lucide-react";
 
 const navItems = [
   { name: "Home", href: "/" },
   { name: "Monitoring", href: "/monitoring" },
   { name: "Daily Data", href: "/daily-data" },
-  // { name: "C.A.I", href: "/cai" },
   { name: "Contact", href: "/contact" },
 ];
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "auto";
-    }
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? "hidden" : "auto";
 
     return () => {
       document.body.style.overflow = "auto";
@@ -31,7 +35,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="w-full h-16 bg-[#ECE9D8] border-b border-black/10 px-4 md:px-6 lg:px-10 flex items-center justify-between">
+      <nav className="w-full h-16 bg-white border-b border-black/10 px-4 md:px-6 lg:px-10 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-2 shrink-0">
           <Image
@@ -57,15 +61,25 @@ export default function Navbar() {
 
         {/* Desktop */}
         <div className="hidden md:flex items-center gap-3">
-          {navItems.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="px-4 py-1 text-sm font-semibold rounded-full border border-[#8D8A7D] text-[#3D3D3D] hover:bg-[#243B6B] hover:text-white transition"
-            >
-              {item.name}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const isActive = mounted && pathname === item.href;
+
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`px-4 py-1 text-sm font-semibold rounded-full border transition-all duration-300
+                  ${
+                    isActive
+                      ? "border-[#243B6B] bg-[#243B6B] text-white"
+                      : "border-[#8D8A7D] text-[#3D3D3D] hover:bg-[#243B6B] hover:text-white"
+                  }
+                `}
+              >
+                {item.name}
+              </Link>
+            );
+          })}
         </div>
 
         {/* Mobile Button */}
@@ -78,68 +92,78 @@ export default function Navbar() {
 
         <div className="hidden md:block w-8" />
       </nav>
-      <AnimatePresence>
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="md:hidden fixed inset-0 z-50 bg-black/20 backdrop-blur-sm p-4"
-            >
-              <motion.div
-                initial={{ y: -40, opacity: 0, scale: 0.96 }}
-                animate={{ y: 0, opacity: 1, scale: 1 }}
-                exit={{ y: -40, opacity: 0, scale: 0.96 }}
-                transition={{
-                  duration: 0.25,
-                  ease: "easeInOut",
-                }}
-                className="bg-[#ECE9D8] rounded-[30px] shadow-2xl p-6"
-              >
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-black/10">
-                  <div className="flex items-center gap-3">
-                    <Image
-                      src="/logo/LogoPnbSmall.png"
-                      alt="logo"
-                      width={45}
-                      height={45}
-                      className="rounded-full"
-                    />
-                  </div>
 
-                  <button
-                    onClick={() => setIsOpen(false)}
-                    className="text-2xl text-black"
-                  >
-                    ✕
-                  </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden fixed inset-0 z-50 bg-black/20 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ y: -40, opacity: 0, scale: 0.96 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: -40, opacity: 0, scale: 0.96 }}
+              transition={{
+                duration: 0.25,
+                ease: "easeInOut",
+              }}
+              className="bg-white rounded-[30px] shadow-2xl p-6"
+            >
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-black/10">
+                <div className="flex items-center gap-3">
+                  <Image
+                    src="/logo/LogoPnbSmall.png"
+                    alt="logo"
+                    width={45}
+                    height={45}
+                    className="rounded-full"
+                  />
                 </div>
 
-                {/* Menu */}
-                <div className="space-y-6">
-                  {navItems.map((item) => (
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-2xl text-black"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Mobile Menu */}
+              <div className="space-y-2">
+                {navItems.map((item) => {
+                  const isActive = mounted && pathname === item.href;
+
+                  return (
                     <Link
                       key={item.name}
                       href={item.href}
                       onClick={() => setIsOpen(false)}
-                      className="block text-md font-semibold text-[#1D2433]"
+                      className={`block w-full px-4 py-3 rounded-xl text-md font-semibold transition-all duration-300
+                       ${
+                         isActive
+                           ? "bg-[#243B6B] text-white"
+                           : "text-[#1D2433] hover:bg-black/5 active:scale-[0.98]"
+                       }
+                      `}
                     >
                       {item.name}
                     </Link>
-                  ))}
+                  );
+                })}
 
-                  <div className="border-b border-black/10"></div>
+                <div className="border-b border-black/10"></div>
 
-                  <Button className="w-full p-4 text-white tracking-widest">
-                    Ask AI
-                  </Button>
-                </div>
-              </motion.div>
+                <Button className="mt-3 h-12 w-full rounded-xl bg-[#2F5D50] text-white font-semibold tracking-wide shadow-md transition-all duration-300 hover:scale-[1.02] hover:bg-[#274b40] active:scale-[0.98]">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Ask AI
+                </Button>
+              </div>
             </motion.div>
-          )}
-        </AnimatePresence>
+          </motion.div>
+        )}
       </AnimatePresence>
     </>
   );

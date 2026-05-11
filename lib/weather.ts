@@ -39,23 +39,3 @@ export function getWeatherMessage(condition: string) {
       return "Kondisi cuaca di area kampus Politeknik Negeri Bali terpantau normal.";
   }
 }
-
-export function getHumidityMessage(humidity: number) {
-  if (humidity >= 85) {
-    return "Kelembapan udara berada pada tingkat sangat tinggi sehingga udara terasa lebih lembap dan gerah.";
-  }
-
-  if (humidity >= 70) {
-    return "Kelembapan udara terpantau cukup tinggi dengan kondisi udara yang relatif lembab.";
-  }
-
-  if (humidity >= 50) {
-    return "Kelembapan udara berada pada tingkat normal dan cukup nyaman untuk beraktivitas.";
-  }
-
-  if (humidity >= 30) {
-    return "Kelembapan udara cenderung rendah sehingga udara terasa lebih kering dari biasanya.";
-  }
-
-  return "Kelembapan udara berada pada tingkat sangat rendah. Disarankan menjaga asupan cairan selama beraktivitas.";
-}

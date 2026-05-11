@@ -14,3 +14,8 @@ export interface WeatherData {
     speed: number;
   };
 }
+
+export type DataPoint = {
+  time: string;
+  humidity: number;
+};
